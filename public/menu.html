@@ -29,6 +29,17 @@
       margin: auto;
     }
 
+    .category {
+      margin-bottom: 32px;
+    }
+
+    .category h2 {
+      margin: 8px 0 16px;
+      font-size: 20px;
+      border-left: 5px solid #e63946;
+      padding-left: 10px;
+    }
+
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -79,10 +90,6 @@
       font-weight: 600;
     }
 
-    .btn.secondary {
-      background: #333;
-    }
-
     .cart {
       position: fixed;
       bottom: 0;
@@ -108,9 +115,7 @@
 
 <header>🍽 Menu Warung Nyam Nyam</header>
 
-<div class="container">
-  <div id="menu" class="grid"></div>
-</div>
+<div class="container" id="menu-container"></div>
 
 <div id="cart" class="cart hidden">
   <div id="cart-items"></div>
@@ -118,7 +123,7 @@
 </div>
 
 <script>
-const WA_NUMBER = "6281261040365" // nomor kamu
+const WA_NUMBER = "6281261040365"
 
 let menus = []
 let cart = {}
@@ -130,23 +135,39 @@ async function loadMenus() {
 }
 
 function renderMenus() {
-  const el = document.getElementById('menu')
+  const container = document.getElementById('menu-container')
 
-  el.innerHTML = menus.map(m => `
-    <div class="card">
-      <img 
-        src="${m.image_url || '/images/no-image.png'}"
-        onerror="this.src='/images/no-image.png'"
-        alt="${m.name}"
-      >
+  // Group menu berdasarkan kategori
+  const grouped = {}
+  menus.forEach(m => {
+    const cat = m.category || 'Lainnya'
+    if (!grouped[cat]) grouped[cat] = []
+    grouped[cat].push(m)
+  })
 
-      <div class="card-body">
-        <div class="name">${m.name}</div>
-        <div class="price">Rp ${Number(m.price).toLocaleString('id-ID')}</div>
+  container.innerHTML = Object.keys(grouped).map(cat => `
+    <div class="category">
+      <h2>${cat}</h2>
 
-        <button class="btn" onclick="addToCart('${m.id}')">
-          Tambah ke Keranjang
-        </button>
+      <div class="grid">
+        ${grouped[cat].map(m => `
+          <div class="card">
+            <img 
+              src="${m.image_url || '/images/no-image.png'}"
+              onerror="this.src='/images/no-image.png'"
+              alt="${m.name}"
+            >
+
+            <div class="card-body">
+              <div class="name">${m.name}</div>
+              <div class="price">Rp ${Number(m.price).toLocaleString('id-ID')}</div>
+
+              <button class="btn" onclick="addToCart('${m.id}')">
+                Tambah ke Keranjang
+              </button>
+            </div>
+          </div>
+        `).join('')}
       </div>
     </div>
   `).join('')
