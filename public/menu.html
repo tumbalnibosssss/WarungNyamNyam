@@ -64,9 +64,9 @@
 
     .card-body {
       padding: 12px;
-      flex: 1;
       display: flex;
       flex-direction: column;
+      flex: 1;
     }
 
     .name {
@@ -99,11 +99,18 @@
       border-top: 1px solid #eee;
       padding: 12px;
       box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+      font-size: 14px;
     }
 
-    .cart p {
-      margin: 4px 0;
-      font-size: 14px;
+    .cart-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .total {
+      font-weight: bold;
+      margin: 10px 0;
     }
 
     .hidden {
@@ -119,6 +126,7 @@
 
 <div id="cart" class="cart hidden">
   <div id="cart-items"></div>
+  <div class="total" id="cart-total"></div>
   <button class="btn" onclick="checkout()">Pesan via WhatsApp</button>
 </div>
 
@@ -127,6 +135,10 @@ const WA_NUMBER = "6281261040365"
 
 let menus = []
 let cart = {}
+
+function rupiah(n) {
+  return 'Rp ' + Number(n).toLocaleString('id-ID')
+}
 
 async function loadMenus() {
   const res = await fetch('/api/menus')
@@ -137,7 +149,6 @@ async function loadMenus() {
 function renderMenus() {
   const container = document.getElementById('menu-container')
 
-  // Group menu berdasarkan kategori
   const grouped = {}
   menus.forEach(m => {
     const cat = m.category || 'Lainnya'
@@ -148,20 +159,16 @@ function renderMenus() {
   container.innerHTML = Object.keys(grouped).map(cat => `
     <div class="category">
       <h2>${cat}</h2>
-
       <div class="grid">
         ${grouped[cat].map(m => `
           <div class="card">
             <img 
               src="${m.image_url || '/images/no-image.png'}"
               onerror="this.src='/images/no-image.png'"
-              alt="${m.name}"
             >
-
             <div class="card-body">
               <div class="name">${m.name}</div>
-              <div class="price">Rp ${Number(m.price).toLocaleString('id-ID')}</div>
-
+              <div class="price">${rupiah(m.price)}</div>
               <button class="btn" onclick="addToCart('${m.id}')">
                 Tambah ke Keranjang
               </button>
@@ -181,6 +188,7 @@ function addToCart(id) {
 function renderCart() {
   const cartEl = document.getElementById('cart')
   const itemsEl = document.getElementById('cart-items')
+  const totalEl = document.getElementById('cart-total')
 
   const items = Object.entries(cart)
   if (items.length === 0) {
@@ -190,18 +198,37 @@ function renderCart() {
 
   cartEl.classList.remove('hidden')
 
+  let total = 0
+
   itemsEl.innerHTML = items.map(([id, qty]) => {
     const menu = menus.find(m => m.id === id)
-    return `<p>• ${menu.name} = ${qty}</p>`
+    const subtotal = menu.price * qty
+    total += subtotal
+
+    return `
+      <div class="cart-item">
+        <div>${menu.name} (${qty}x)</div>
+        <div>${rupiah(subtotal)}</div>
+      </div>
+    `
   }).join('')
+
+  totalEl.innerText = `Total: ${rupiah(total)}`
 }
 
 function checkout() {
   let text = 'Bang aku pesan:%0A'
+  let total = 0
+
   Object.entries(cart).forEach(([id, qty], i) => {
     const m = menus.find(x => x.id === id)
-    text += `${i+1}. ${m.name} = ${qty}%0A`
+    const subtotal = m.price * qty
+    total += subtotal
+
+    text += `${i+1}. ${m.name} = ${qty} x ${rupiah(m.price)} = ${rupiah(subtotal)}%0A`
   })
+
+  text += `%0ATotal: ${rupiah(total)}`
 
   window.open(`https://wa.me/${WA_NUMBER}?text=${text}`, '_blank')
 }
