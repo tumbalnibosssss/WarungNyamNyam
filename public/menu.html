@@ -105,7 +105,23 @@
     .cart-item {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 4px;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .qty-control {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .qty-btn {
+      border: none;
+      background: #eee;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
     }
 
     .total {
@@ -185,6 +201,17 @@ function addToCart(id) {
   renderCart()
 }
 
+function increase(id) {
+  cart[id]++
+  renderCart()
+}
+
+function decrease(id) {
+  cart[id]--
+  if (cart[id] <= 0) delete cart[id]
+  renderCart()
+}
+
 function renderCart() {
   const cartEl = document.getElementById('cart')
   const itemsEl = document.getElementById('cart-items')
@@ -207,8 +234,16 @@ function renderCart() {
 
     return `
       <div class="cart-item">
-        <div>${menu.name} (${qty}x)</div>
-        <div>${rupiah(subtotal)}</div>
+        <div>
+          ${menu.name}<br>
+          <small>${rupiah(menu.price)} x ${qty} = ${rupiah(subtotal)}</small>
+        </div>
+
+        <div class="qty-control">
+          <button class="qty-btn" onclick="decrease('${id}')">−</button>
+          <strong>${qty}</strong>
+          <button class="qty-btn" onclick="increase('${id}')">+</button>
+        </div>
       </div>
     `
   }).join('')
