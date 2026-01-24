@@ -164,6 +164,13 @@ fileInput.onchange = () => {
 
 // Upload ke backend (ImgBB)
 async function uploadImage(file) {
+  // Batasi 8MB di sisi user (biar tidak buang waktu upload)
+  const maxSize = 8 * 1024 * 1024
+
+  if (file.size > maxSize) {
+    throw new Error('Ukuran gambar terlalu besar. Maksimal 8MB.')
+  }
+
   const formData = new FormData()
   formData.append('image', file)
 
@@ -177,7 +184,14 @@ async function uploadImage(file) {
     body: formData
   })
 
-  const data = await res.json()
+  const text = await res.text()
+
+  let data
+  try {
+    data = JSON.parse(text)
+  } catch {
+    throw new Error(text || 'Upload gagal')
+  }
 
   if (!res.ok) {
     throw new Error(data.error || 'Upload gagal')
@@ -186,6 +200,7 @@ async function uploadImage(file) {
   uploadStatus.textContent = 'Upload selesai'
   return data.url
 }
+
 
 // API helper
 async function api(url, options = {}) {
