@@ -3,210 +3,270 @@
 <head>
   <title>Dashboard Admin - Warung Nyam Nyam</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="/admin/layout.css">
+
   <style>
-    /* tambahan khusus dashboard */
-    .toolbar {
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: #f6f6f6;
+    }
+
+    header {
+      background: #e63946;
+      color: white;
+      padding: 16px;
+      font-size: 20px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: auto;
+      padding: 16px;
+    }
+
+    .topbar {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 16px;
-      gap: 10px;
       flex-wrap: wrap;
+      gap: 10px;
     }
 
-    .toolbar input {
-      max-width: 280px;
+    .btn {
+      background: #e63946;
+      color: white;
+      border: none;
+      padding: 10px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .btn.gray {
+      background: #555;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 14px;
+      background: white;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.05);
     }
 
     th, td {
       padding: 12px;
-      border-bottom: 1px solid #eee;
       text-align: left;
+      font-size: 14px;
+      border-bottom: 1px solid #eee;
+      vertical-align: middle;
     }
 
     th {
       background: #fafafa;
-      font-size: 13px;
-      text-transform: uppercase;
-      color: #666;
     }
 
     tr:hover {
-      background: #f9fafb;
+      background: #f9f9f9;
+    }
+
+    .thumb {
+      width: 50px;
+      height: 50px;
+      border-radius: 8px;
+      object-fit: cover;
+      background: #eee;
+      display: block;
+    }
+
+    .thumb-wrap {
+      width: 50px;
+      height: 50px;
+      background: #eee;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: #888;
     }
 
     .badge {
+      display: inline-block;
       padding: 4px 10px;
       border-radius: 999px;
       font-size: 12px;
       font-weight: 600;
-      display: inline-block;
     }
 
-    .active {
-      background: #dcfce7;
-      color: #166534;
+    .badge.active {
+      background: #e6f7ec;
+      color: #1f7a3f;
     }
 
-    .inactive {
-      background: #fee2e2;
-      color: #991b1b;
+    .badge.inactive {
+      background: #fdeaea;
+      color: #a11a1a;
     }
 
-    .btn-edit {
-      background: #111827;
-      color: white;
-      padding: 6px 12px;
-      border-radius: 8px;
-      font-size: 12px;
-      cursor: pointer;
+    .badge.best {
+      background: #fff4d6;
+      color: #9a6b00;
+    }
+
+    .actions a {
+      margin-right: 8px;
       text-decoration: none;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
     }
 
-    .btn-edit:hover {
-      background: #000;
-    }
+    .actions .edit { color: #e63946; }
+    .actions .delete { color: #555; }
 
-    .empty {
-      text-align: center;
-      padding: 30px;
-      color: #777;
+    .status {
+      font-size: 14px;
+      margin-top: 10px;
+      color: #666;
     }
   </style>
 </head>
 <body>
 
-<div class="app">
-  <!-- Sidebar -->
-  <aside class="sidebar">
-    <div class="brand">🍽 Warung Nyam Nyam</div>
-    <nav class="nav">
-        <a href="/admin/dashboard.html">Dashboard</a>
-        <a href="/admin/add.html">Tambah Menu</a>
-        <a href="/admin/logs.html">Audit Log</a>
-        <a href="#" id="logoutBtn">Logout</a>
-        </nav>
+<header>🛠 Dashboard Admin</header>
 
-  </aside>
+<div class="container">
 
-  <!-- Main -->
-  <div class="main">
-    <div class="topbar">Dashboard Menu</div>
+  <div class="topbar">
+    <strong>Daftar Menu</strong>
 
-    <div class="content">
-      <div class="card">
-
-        <div class="toolbar">
-          <input id="search" placeholder="Cari menu...">
-          <button class="primary" onclick="location.href='/admin/add.html'">
-            + Tambah Menu
-          </button>
-        </div>
-
-        <div style="overflow-x:auto">
-          <table>
-            <thead>
-              <tr>
-                <th>Nama</th>
-                <th>Kategori</th>
-                <th>Harga</th>
-                <th>Status</th>
-                <th>Best</th>
-                <th>Aksi</th>
-              </tr>
-            </thead>
-            <tbody id="rows"></tbody>
-          </table>
-        </div>
-
-      </div>
+    <div>
+      <a href="/admin/add.html" class="btn">➕ Tambah Menu</a>
+      <button class="btn gray" onclick="logout()">Logout</button>
     </div>
   </div>
-</div>
 
-<script src="/admin/layout.js"></script>
+  <table>
+    <thead>
+      <tr>
+        <th>Gambar</th>
+        <th>Nama</th>
+        <th>Harga</th>
+        <th>Kategori</th>
+        <th>Status</th>
+        <th>Best Seller</th>
+        <th>Aksi</th>
+      </tr>
+    </thead>
+    <tbody id="tbody">
+      <tr><td colspan="7">Memuat data...</td></tr>
+    </tbody>
+  </table>
+
+  <div class="status" id="status"></div>
+</div>
 
 <script>
 const token = localStorage.getItem('token')
 if (!token) location.href = '/admin/login.html'
 
-const rows = document.getElementById('rows')
-const search = document.getElementById('search')
-const logoutBtn = document.getElementById('logoutBtn')
+const tbody = document.getElementById('tbody')
+const statusEl = document.getElementById('status')
 
-logoutBtn.onclick = () => {
+function rupiah(n) {
+  return 'Rp ' + Number(n || 0).toLocaleString('id-ID')
+}
+
+async function loadMenus() {
+  try {
+    const res = await fetch('/api/admin/menus', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+
+    if (!res.ok) throw new Error('Gagal ambil data')
+
+    const data = await res.json()
+
+    if (!Array.isArray(data) || !data.length) {
+      tbody.innerHTML = `<tr><td colspan="7">Belum ada menu.</td></tr>`
+      return
+    }
+
+    tbody.innerHTML = data.map(m => `
+      <tr>
+        <td>
+          ${
+            m.image_url
+              ? `<img src="${m.image_url}" class="thumb"
+                     onerror="this.onerror=null;this.src='/images/no-image.png'">`
+              : `<div class="thumb-wrap">No Img</div>`
+          }
+        </td>
+        <td>${m.name || '-'}</td>
+        <td>${rupiah(m.price)}</td>
+        <td>${m.category || '-'}</td>
+
+        <td>
+          ${
+            m.is_active
+              ? `<span class="badge active">Aktif</span>`
+              : `<span class="badge inactive">Nonaktif</span>`
+          }
+        </td>
+
+        <td>
+          ${
+            m.is_best_seller
+              ? `<span class="badge best">⭐ Best</span>`
+              : '-'
+          }
+        </td>
+
+        <td class="actions">
+          <a href="/admin/edit.html?id=${m.id}" class="edit">Edit</a>
+          <a class="delete" onclick="hapus('${m.id}')">Hapus</a>
+        </td>
+      </tr>
+    `).join('')
+
+  } catch (err) {
+    console.error(err)
+    tbody.innerHTML = `<tr><td colspan="7">Gagal memuat data.</td></tr>`
+  }
+}
+
+async function hapus(id) {
+  if (!confirm('Yakin mau hapus menu ini?')) return
+
+  try {
+    const res = await fetch(`/api/admin/menus/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
+    })
+
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Gagal hapus')
+
+    statusEl.textContent = '✅ Menu berhasil dihapus'
+    loadMenus()
+  } catch (err) {
+    statusEl.textContent = '❌ ' + err.message
+  }
+}
+
+function logout() {
   localStorage.removeItem('token')
   location.href = '/admin/login.html'
 }
 
-async function api(url) {
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` }
-  })
-
-  if (res.status === 401) {
-    alert('Session habis, silakan login ulang')
-    localStorage.removeItem('token')
-    location.href = '/admin/login.html'
-    return []
-  }
-
-  return res.json()
-}
-
-let menus = []
-
-function render(data) {
-  if (!data.length) {
-    rows.innerHTML = `
-      <tr>
-        <td colspan="6" class="empty">Tidak ada menu ditemukan</td>
-      </tr>`
-    return
-  }
-
-  rows.innerHTML = data.map(m => `
-    <tr>
-      <td>${m.name}</td>
-      <td>${m.category || '-'}</td>
-      <td>Rp ${Number(m.price).toLocaleString()}</td>
-      <td>
-        <span class="badge ${m.is_active ? 'active' : 'inactive'}">
-          ${m.is_active ? 'Aktif' : 'Nonaktif'}
-        </span>
-      </td>
-      <td>${m.is_best_seller ? '⭐' : '-'}</td>
-      <td>
-        <a class="btn-edit" href="/admin/edit.html?id=${m.id}">
-          Edit
-        </a>
-      </td>
-    </tr>
-  `).join('')
-}
-
-async function load() {
-  menus = await api('/api/admin/menus')
-  render(menus)
-}
-
-search.oninput = () => {
-  const q = search.value.toLowerCase()
-  const filtered = menus.filter(m =>
-    m.name.toLowerCase().includes(q) ||
-    (m.category || '').toLowerCase().includes(q)
-  )
-  render(filtered)
-}
-
-load()
+loadMenus()
 </script>
 
 </body>

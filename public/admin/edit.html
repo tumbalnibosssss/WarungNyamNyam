@@ -1,295 +1,316 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Edit Menu - Admin</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="/admin/layout.css">
 
   <style>
-    .toast {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #111;
-      color: #fff;
-      padding: 12px 20px;
-      border-radius: 999px;
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: #f6f6f6;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      background: white;
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.05);
+    }
+
+    h1 { margin-bottom: 20px; }
+
+    label {
       font-size: 14px;
-      opacity: 0;
-      pointer-events: none;
-      transition: 0.3s;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 6px;
     }
 
-    .toast.show {
-      opacity: 1;
-      bottom: 30px;
+    input {
+      width: 100%;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      margin-bottom: 16px;
+      font-size: 14px;
     }
 
-    .loading {
+    .toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+
+    .toggle input { transform: scale(1.2); }
+
+    .dropzone {
+      border: 2px dashed #ddd;
+      border-radius: 14px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      margin-bottom: 16px;
+      background: #fafafa;
+      transition: 0.2s;
+    }
+
+    .dropzone.dragover {
+      background: #fff1f2;
+      border-color: #e63946;
+    }
+
+    .preview {
+      width: 100%;
+      height: 220px;
+      background: #f0f0f0;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-size: 13px;
       color: #777;
-      margin-bottom: 10px;
     }
 
-    .loading-text {
+    .preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .progress {
+      height: 10px;
+      background: #eee;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .progress div {
+      height: 100%;
+      width: 0%;
+      background: #e63946;
+    }
+
+    button {
+      background: #e63946;
+      color: white;
+      border: none;
+      padding: 12px;
+      width: 100%;
+      border-radius: 12px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:disabled { opacity: 0.6; }
+
+    .status {
       font-size: 13px;
-      color: #777;
-      margin-top: 6px;
+      margin-top: 10px;
+      color: #555;
+    }
+
+    .back {
+      margin-top: 16px;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .back a {
+      color: #333;
+      text-decoration: none;
     }
   </style>
 </head>
 <body>
 
-<div class="app">
-  <!-- Sidebar -->
-  <aside class="sidebar">
-    <div class="brand">🍽 Warung Nyam Nyam</div>
-    <nav class="nav">
-        <a href="/admin/dashboard.html">Dashboard</a>
-        <a href="/admin/add.html">Tambah Menu</a>
-        <a href="/admin/logs.html">Audit Log</a>
-        <a href="#" id="logoutBtn">Logout</a>
-        </nav>
+<div class="container">
+  <h1>✏️ Edit Menu</h1>
 
-  </aside>
+  <label>Nama Menu</label>
+  <input id="name" />
 
-  <!-- Main -->
-  <div class="main">
-    <div class="topbar">Edit Menu</div>
+  <label>Harga</label>
+  <input id="price" type="number" />
 
-    <div class="content">
-      <div class="card">
+  <label>Kategori</label>
+  <input id="category" />
 
-        <div id="status" class="loading">Memuat data menu...</div>
+  <div class="toggle">
+    <input type="checkbox" id="isActive">
+    <label for="isActive">Tampilkan menu ini ke pelanggan</label>
+  </div>
 
-        <div id="form" style="display:none">
+  <div class="toggle">
+    <input type="checkbox" id="isBest">
+    <label for="isBest">Jadikan sebagai menu unggulan (Best Seller)</label>
+  </div>
 
-          <div class="group">
-            <label>Nama Menu</label>
-            <input id="menu_name" placeholder="Contoh: Ayam Geprek Sambal Ijo">
-          </div>
+  <label>Foto Menu</label>
+  <div class="dropzone" id="dropzone">Klik atau tarik gambar ke sini</div>
+  <input id="image" type="file" accept="image/*" hidden>
 
-          <div class="row">
-            <div class="group">
-              <label>Harga</label>
-              <input id="price" type="number">
-            </div>
-            <div class="group">
-              <label>Kategori</label>
-              <input id="category">
-            </div>
-          </div>
+  <div class="preview" id="preview">Memuat gambar...</div>
 
-          <div class="group">
-            <label>Gambar Menu</label>
-            <input type="file" id="image_file" accept="image/*">
-            <div id="uploadStatus" class="loading-text"></div>
-            <img id="preview" class="preview">
-          </div>
+  <div class="progress" id="progress">
+    <div></div>
+  </div>
 
-          <div class="group">
-            <label>
-              <input type="checkbox" id="is_active">
-              Menu aktif
-            </label>
-          </div>
+  <button id="saveBtn">Simpan Perubahan</button>
 
-          <div class="group">
-            <label>
-              <input type="checkbox" id="is_best">
-              Best Seller ⭐
-            </label>
-          </div>
+  <div class="status" id="status"></div>
 
-          <div class="actions">
-            <button class="primary" id="saveBtn">Simpan Perubahan</button>
-            <button class="secondary" onclick="location.href='/admin/dashboard.html'">
-              Batal & Kembali
-            </button>
-          </div>
-
-        </div>
-      </div>
-    </div>
+  <div class="back">
+    <a href="/admin/dashboard.html">← Kembali ke Dashboard</a>
   </div>
 </div>
-
-<div id="toast" class="toast"></div>
-
-<script src="/admin/layout.js"></script>
 
 <script>
 const token = localStorage.getItem('token')
 if (!token) location.href = '/admin/login.html'
 
-const logoutBtn = document.getElementById('logoutBtn')
-logoutBtn.onclick = () => {
-  localStorage.removeItem('token')
-  location.href = '/admin/login.html'
-}
-
 const id = new URLSearchParams(location.search).get('id')
+if (!id) location.href = '/admin/dashboard.html'
 
-const statusEl = document.getElementById('status')
-const formEl = document.getElementById('form')
-const toast = document.getElementById('toast')
-const saveBtn = document.getElementById('saveBtn')
-
-const nameInput = document.getElementById('menu_name')
+const nameInput = document.getElementById('name')
 const priceInput = document.getElementById('price')
 const categoryInput = document.getElementById('category')
-const fileInput = document.getElementById('image_file')
-const activeInput = document.getElementById('is_active')
-const bestInput = document.getElementById('is_best')
+const isActiveInput = document.getElementById('isActive')
+const isBestInput = document.getElementById('isBest')
+
+const fileInput = document.getElementById('image')
+const dropzone = document.getElementById('dropzone')
 const preview = document.getElementById('preview')
-const uploadStatus = document.getElementById('uploadStatus')
+const progress = document.getElementById('progress')
+const bar = progress.querySelector('div')
+const statusEl = document.getElementById('status')
+const saveBtn = document.getElementById('saveBtn')
 
-let existingImageUrl = ''
+let selectedFile = null
+let currentImage = null
 
-function showToast(msg) {
-  toast.textContent = msg
-  toast.classList.add('show')
-  setTimeout(() => toast.classList.remove('show'), 2500)
-}
-
-// Preview gambar saat pilih file baru
-fileInput.onchange = () => {
-  const file = fileInput.files[0]
-  if (file) {
-    preview.src = URL.createObjectURL(file)
-    preview.style.display = 'block'
-  }
-}
-
-// Upload ke backend (ImgBB)
-async function uploadImage(file) {
-  // Batasi 8MB di sisi user (biar tidak buang waktu upload)
-  const maxSize = 8 * 1024 * 1024
-
-  if (file.size > maxSize) {
-    throw new Error('Ukuran gambar terlalu besar. Maksimal 8MB.')
-  }
-
-  const formData = new FormData()
-  formData.append('image', file)
-
-  uploadStatus.textContent = 'Mengupload gambar...'
-
-  const res = await fetch('/api/upload-image', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`
-    },
-    body: formData
-  })
-
-  const text = await res.text()
-
-  let data
-  try {
-    data = JSON.parse(text)
-  } catch {
-    throw new Error(text || 'Upload gagal')
-  }
-
-  if (!res.ok) {
-    throw new Error(data.error || 'Upload gagal')
-  }
-
-  uploadStatus.textContent = 'Upload selesai'
-  return data.url
-}
-
-
-// API helper
-async function api(url, options = {}) {
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
-    }
-  })
-
-  if (res.status === 401) {
-    showToast('Session habis, login ulang')
-    localStorage.removeItem('token')
-    setTimeout(() => location.href = '/admin/login.html', 1000)
-    throw new Error('Unauthorized')
-  }
-
-  if (!res.ok) {
-    throw new Error(await res.text())
-  }
-
-  return res.json()
-}
-
-// Load data menu
 async function load() {
-  try {
-    const menu = await api('/api/admin/menus/' + id)
+  const res = await fetch(`/api/admin/menus/${id}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+  const data = await res.json()
 
-    nameInput.value = menu.name || ''
-    priceInput.value = menu.price || ''
-    categoryInput.value = menu.category || ''
-    activeInput.checked = !!menu.is_active
-    bestInput.checked = !!menu.is_best_seller
+  nameInput.value = data.name || ''
+  priceInput.value = data.price || ''
+  categoryInput.value = data.category || ''
+  isActiveInput.checked = !!data.is_active
+  isBestInput.checked = !!data.is_best_seller
 
-    existingImageUrl = menu.image_url || ''
+  currentImage = data.image_url
+  preview.innerHTML = currentImage
+    ? `<img src="${currentImage}" onerror="this.src='/images/no-image.png'">`
+    : 'Belum ada gambar'
+}
 
-    if (existingImageUrl) {
-      preview.src = existingImageUrl
-      preview.style.display = 'block'
+dropzone.onclick = () => fileInput.click()
+fileInput.onchange = () => handleFile(fileInput.files[0])
+
+// Drag & drop support
+dropzone.addEventListener('dragover', e => {
+  e.preventDefault()
+  dropzone.classList.add('dragover')
+})
+
+dropzone.addEventListener('dragleave', () => {
+  dropzone.classList.remove('dragover')
+})
+
+dropzone.addEventListener('drop', e => {
+  e.preventDefault()
+  dropzone.classList.remove('dragover')
+  handleFile(e.dataTransfer.files[0])
+})
+
+function handleFile(file) {
+  if (!file) return
+  selectedFile = file
+
+  const reader = new FileReader()
+  reader.onload = e => preview.innerHTML = `<img src="${e.target.result}">`
+  reader.readAsDataURL(file)
+}
+
+function upload(file) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    const form = new FormData()
+    form.append('image', file)
+
+    xhr.open('POST', '/api/upload-image')
+    xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+
+    xhr.upload.onprogress = e => {
+      progress.style.display = 'block'
+      bar.style.width = Math.round((e.loaded / e.total) * 100) + '%'
     }
 
-    statusEl.style.display = 'none'
-    formEl.style.display = 'block'
+    xhr.onload = () => {
+      try {
+        const data = JSON.parse(xhr.responseText)
+        if (xhr.status >= 400) reject(data.error || 'Upload gagal')
+        else resolve(data.url)
+      } catch {
+        reject('Upload gagal')
+      }
+    }
 
-  } catch (err) {
-    console.error(err)
-    statusEl.innerText = 'Gagal memuat data menu'
-  }
+    xhr.onerror = () => reject('Koneksi gagal')
+    xhr.send(form)
+  })
 }
 
 saveBtn.onclick = async () => {
-  if (!nameInput.value.trim()) return showToast('Nama menu wajib diisi')
-  if (!categoryInput.value.trim()) return showToast('Kategori wajib diisi')
-  if (priceInput.value <= 0) return showToast('Harga tidak valid')
-
-  saveBtn.disabled = true
-  saveBtn.innerText = 'Memproses...'
-
   try {
-    let imageUrl = existingImageUrl
+    saveBtn.disabled = true
+    statusEl.textContent = 'Menyimpan...'
 
-    // Jika user pilih gambar baru → upload dulu
-    if (fileInput.files.length > 0) {
-      imageUrl = await uploadImage(fileInput.files[0])
+    let imageUrl = currentImage
+    if (selectedFile) {
+      statusEl.textContent = 'Upload gambar...'
+      imageUrl = await upload(selectedFile)
     }
 
-    await api('/api/admin/menus/' + id, {
+    const body = {
+      name: nameInput.value.trim(),
+      price: Number(priceInput.value),
+      category: categoryInput.value.trim(),
+      is_active: isActiveInput.checked,
+      is_best_seller: isBestInput.checked,
+      image_url: imageUrl
+    }
+
+    const res = await fetch(`/api/admin/menus/${id}`, {
       method: 'PUT',
-      body: JSON.stringify({
-        name: nameInput.value.trim(),
-        price: Number(priceInput.value),
-        category: categoryInput.value.trim(),
-        image_url: imageUrl,
-        is_active: activeInput.checked,
-        is_best_seller: bestInput.checked
-      })
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify(body)
     })
 
-    showToast('Perubahan berhasil disimpan')
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Gagal menyimpan')
+
+    statusEl.textContent = '✅ Perubahan berhasil disimpan'
     setTimeout(() => location.href = '/admin/dashboard.html', 800)
 
   } catch (err) {
-    console.error(err)
-    showToast('Gagal upload atau simpan')
-  } finally {
+    statusEl.textContent = '❌ ' + err
     saveBtn.disabled = false
-    saveBtn.innerText = 'Simpan Perubahan'
   }
 }
 

@@ -2,118 +2,144 @@
 <html>
 <head>
   <title>Login Admin - Warung Nyam Nyam</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #f8f8f8;
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: #f6f6f6;
       display: flex;
-      justify-content: center;
       align-items: center;
-      height: 100vh;
+      justify-content: center;
+      min-height: 100vh;
     }
 
-    .login-box {
+    .box {
       background: white;
-      padding: 2rem;
-      border-radius: 12px;
+      padding: 30px;
+      border-radius: 16px;
       width: 100%;
-      max-width: 350px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      max-width: 360px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
     }
 
-    input, button {
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    label {
+      font-size: 14px;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    input {
       width: 100%;
-      padding: 0.7rem;
-      margin-top: 0.7rem;
-      border-radius: 8px;
+      padding: 10px;
+      border-radius: 10px;
       border: 1px solid #ddd;
-      font-size: 1rem;
+      margin-bottom: 16px;
+      font-size: 14px;
     }
 
     button {
+      width: 100%;
+      padding: 12px;
       background: #e63946;
       color: white;
       border: none;
+      border-radius: 12px;
+      font-weight: bold;
       cursor: pointer;
     }
 
-    .error {
-      color: red;
-      font-size: 0.85rem;
-      margin-top: 0.7rem;
+    button:disabled {
+      opacity: 0.6;
     }
 
-    .success {
-      color: green;
-      font-size: 0.85rem;
-      margin-top: 0.7rem;
+    .error {
+      color: #a11a1a;
+      font-size: 13px;
+      margin-top: 10px;
+      text-align: center;
+    }
+
+    .info {
+      font-size: 12px;
+      color: #777;
+      text-align: center;
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
 
-<div class="login-box">
-  <h2>Login Admin</h2>
+<div class="box">
+  <h1>🔐 Login Admin</h1>
 
-  <input id="email" type="email" placeholder="Email admin" />
-  <input id="password" type="password" placeholder="Password" />
+  <label>Email</label>
+  <input id="email" type="email" placeholder="admin@nyamnyam.com">
+
+  <label>Password</label>
+  <input id="password" type="password" placeholder="********">
+
   <button id="loginBtn">Login</button>
 
-  <div id="message" class="error"></div>
+  <div class="error" id="error"></div>
+
+  <div class="info">
+    Default login:<br>
+    admin@nyamnyam.com / admin123
+  </div>
 </div>
 
-<!-- Supabase CDN -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script>
-  let client
+const btn = document.getElementById('loginBtn')
+const errorEl = document.getElementById('error')
 
-  async function init() {
-    const res = await fetch('/api/config')
-    const config = await res.json()
+btn.onclick = async () => {
+  errorEl.textContent = ''
+  btn.disabled = true
 
-    if (!config.supabaseUrl || !config.supabaseAnonKey) {
-      document.getElementById('message').innerText =
-        'Config Supabase tidak ditemukan. Cek server.js'
-      return
-    }
+  const email = document.getElementById('email').value.trim()
+  const password = document.getElementById('password').value.trim()
 
-    client = supabase.createClient(
-      config.supabaseUrl,
-      config.supabaseAnonKey
-    )
+  if (!email || !password) {
+    errorEl.textContent = 'Email dan password wajib diisi'
+    btn.disabled = false
+    return
   }
 
-  init()
-
-  const btn = document.getElementById('loginBtn')
-  const msg = document.getElementById('message')
-
-  btn.addEventListener('click', async () => {
-    if (!client) return alert('Supabase belum siap')
-
-    const email = document.getElementById('email').value
-    const password = document.getElementById('password').value
-
-    msg.innerText = 'Loading...'
-
-    const { data, error } = await client.auth.signInWithPassword({
-      email,
-      password
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
     })
 
-    if (error) {
-      msg.innerText = error.message
+    const data = await res.json()
+
+    if (!res.ok) {
+      errorEl.textContent = data.error || 'Login gagal'
+      btn.disabled = false
       return
     }
 
-    localStorage.setItem('token', data.session.access_token)
-    window.location.href = '/admin/dashboard.html'
-  })
-</script>
+    // SIMPAN TOKEN (ini yang bikin 401 hilang)
+    localStorage.setItem('token', data.token)
 
+    // Redirect ke dashboard
+    location.href = '/admin/dashboard.html'
+
+  } catch (err) {
+    errorEl.textContent = 'Tidak bisa terhubung ke server'
+    btn.disabled = false
+  }
+}
+</script>
 
 </body>
 </html>
