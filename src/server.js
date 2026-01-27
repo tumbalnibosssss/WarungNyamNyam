@@ -3,34 +3,44 @@ const express = require('express')
 const cors = require('cors')
 const jwt = require('jsonwebtoken')
 const multer = require('multer')
+const path = require('path')
 const { createClient } = require('@supabase/supabase-js')
 
 const app = express()
 const PORT = 3000
 
-// ===== Supabase =====
+// ===============================
+// Supabase
+// ===============================
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
-// ===== Middleware =====
+// ===============================
+// Middleware
+// ===============================
 app.use(cors())
 app.use(express.json())
-app.use(express.static('public'))
+app.use(express.static(path.join(__dirname, 'public')))
 
-// Multer memory upload
+// ===============================
+// Multer (upload memory)
+// ===============================
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB
 })
 
-// ===== AUTH =====
+// ===============================
+// AUTH MIDDLEWARE
+// ===============================
 function authenticate(req, res, next) {
   const auth = req.headers.authorization
   if (!auth) return res.status(401).json({ error: 'No token' })
 
   const token = auth.split(' ')[1]
+
   try {
     req.user = jwt.verify(token, process.env.JWT_SECRET)
     next()
@@ -39,11 +49,20 @@ function authenticate(req, res, next) {
   }
 }
 
-// ===== LOGIN =====
-app.post('/api/login', async (req, res) => {
+// ===============================
+// ROUTE: ROOT FIX (Cannot GET /)
+// ===============================
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/index.html'))
+})
+
+// ===============================
+// LOGIN
+// ===============================
+app.post('/api/login', (req, res) => {
   const { email, password } = req.body
 
-  // Contoh hardcode admin (bisa kamu ganti ke DB nanti)
+  // Demo admin (bisa diganti DB nanti)
   if (email === 'admin@nyamnyam.com' && password === 'admin123') {
     const token = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: '1d' })
     return res.json({ token })
@@ -52,13 +71,15 @@ app.post('/api/login', async (req, res) => {
   res.status(401).json({ error: 'Email atau password salah' })
 })
 
-// ===== PUBLIC MENUS =====
+// ===============================
+// PUBLIC MENU API
+// ===============================
 app.get('/api/menus', async (req, res) => {
   const { data, error } = await supabase
     .from('menus')
     .select('*')
     .eq('is_active', true)
-    .order('created_at')
+    .order('created_at', { ascending: false })
 
   if (error) return res.status(500).json({ error })
   res.json(data)
@@ -68,16 +89,22 @@ app.get('/api/menus/best-seller', async (req, res) => {
   const { data, error } = await supabase
     .from('menus')
     .select('*')
-    .eq('is_best_seller', true)
     .eq('is_active', true)
+    .eq('is_best_seller', true)
 
   if (error) return res.status(500).json({ error })
   res.json(data)
 })
 
-// ===== ADMIN MENUS =====
+// ===============================
+// ADMIN MENU API
+// ===============================
 app.get('/api/admin/menus', authenticate, async (req, res) => {
-  const { data, error } = await supabase.from('menus').select('*').order('created_at', { ascending: false })
+  const { data, error } = await supabase
+    .from('menus')
+    .select('*')
+    .order('created_at', { ascending: false })
+
   if (error) return res.status(500).json({ error })
   res.json(data)
 })
@@ -119,10 +146,14 @@ app.delete('/api/admin/menus/:id', authenticate, async (req, res) => {
   res.json({ success: true })
 })
 
-// ===== UPLOAD IMAGE =====
+// ===============================
+// UPLOAD IMAGE (SUPABASE STORAGE)
+// ===============================
 app.post('/api/upload-image', authenticate, upload.single('image'), async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ error: 'File tidak ada' })
+    if (!req.file) {
+      return res.status(400).json({ error: 'Tidak ada file yang diupload' })
+    }
 
     const ext = req.file.originalname.split('.').pop()
     const filename = `menu-${Date.now()}.${ext}`
@@ -136,7 +167,7 @@ app.post('/api/upload-image', authenticate, upload.single('image'), async (req, 
 
     if (error) {
       console.error(error)
-      return res.status(500).json({ error: 'Gagal upload ke Supabase' })
+      return res.status(500).json({ error: 'Gagal upload ke Supabase Storage' })
     }
 
     const { data } = supabase.storage
@@ -147,11 +178,13 @@ app.post('/api/upload-image', authenticate, upload.single('image'), async (req, 
 
   } catch (err) {
     console.error(err)
-    res.status(500).json({ error: 'Upload error' })
+    res.status(500).json({ error: 'Upload gagal' })
   }
 })
 
-// ===== RUN SERVER =====
+// ===============================
+// RUN SERVER
+// ===============================
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`)
+  console.log(`Server running at http://localhost:${PORT}`)
 })
