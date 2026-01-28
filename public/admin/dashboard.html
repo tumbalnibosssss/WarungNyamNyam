@@ -35,6 +35,15 @@
       gap: 10px;
     }
 
+    /* Style Input Pencarian Baru */
+    .search-box {
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      width: 200px;
+      font-size: 14px;
+    }
+
     .btn {
       background: #e63946;
       color: white;
@@ -103,23 +112,14 @@
       border-radius: 999px;
       font-size: 12px;
       font-weight: 600;
+      white-space: nowrap;
     }
 
-    .badge.active {
-      background: #e6f7ec;
-      color: #1f7a3f;
-    }
+    .badge.active { background: #e6f7ec; color: #1f7a3f; }
+    .badge.inactive { background: #fdeaea; color: #a11a1a; }
+    .badge.best { background: #fff4d6; color: #9a6b00; }
 
-    .badge.inactive {
-      background: #fdeaea;
-      color: #a11a1a;
-    }
-
-    .badge.best {
-      background: #fff4d6;
-      color: #9a6b00;
-    }
-
+    .actions { white-space: nowrap; }
     .actions a {
       margin-right: 8px;
       text-decoration: none;
@@ -145,7 +145,10 @@
 <div class="container">
 
   <div class="topbar">
-    <strong>Daftar Menu</strong>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <strong>Daftar Menu</strong>
+      <input type="text" id="searchInput" class="search-box" placeholder="🔍 Cari menu...">
+    </div>
 
     <div>
       <a href="/admin/add.html" class="btn">➕ Tambah Menu</a>
@@ -153,22 +156,24 @@
     </div>
   </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Gambar</th>
-        <th>Nama</th>
-        <th>Harga</th>
-        <th>Kategori</th>
-        <th>Status</th>
-        <th>Best Seller</th>
-        <th>Aksi</th>
-      </tr>
-    </thead>
-    <tbody id="tbody">
-      <tr><td colspan="7">Memuat data...</td></tr>
-    </tbody>
-  </table>
+  <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Gambar</th>
+          <th>Nama</th>
+          <th>Harga</th>
+          <th>Kategori</th>
+          <th>Status</th>
+          <th>Best Seller</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="tbody">
+        <tr><td colspan="7">Memuat data...</td></tr>
+      </tbody>
+    </table>
+  </div>
 
   <div class="status" id="status"></div>
 </div>
@@ -179,9 +184,47 @@ if (!token) location.href = '/admin/login.html'
 
 const tbody = document.getElementById('tbody')
 const statusEl = document.getElementById('status')
+const searchInput = document.getElementById('searchInput')
+
+let allMenus = [] // Variabel untuk menyimpan data agar pencarian cepat
 
 function rupiah(n) {
   return 'Rp ' + Number(n || 0).toLocaleString('id-ID')
+}
+
+// Fungsi Render untuk menampilkan data (dipisah agar bisa dipanggil saat search)
+function renderMenus(data) {
+  if (!Array.isArray(data) || !data.length) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px;">Menu tidak ditemukan.</td></tr>`
+    return
+  }
+
+  tbody.innerHTML = data.map(m => `
+    <tr>
+      <td>
+        ${
+          m.image_url
+            ? `<img src="${m.image_url}" class="thumb" onerror="this.onerror=null;this.src='/images/no-image.png'">`
+            : `<div class="thumb-wrap">No Img</div>`
+        }
+      </td>
+      <td>${m.name || '-'}</td>
+      <td>${rupiah(m.price)}</td>
+      <td>${m.category || '-'}</td>
+      <td>
+        ${m.is_active 
+          ? `<span class="badge active">Aktif</span>` 
+          : `<span class="badge inactive">Nonaktif</span>`}
+      </td>
+      <td>
+        ${m.is_best_seller ? `<span class="badge best">⭐ Best</span>` : '-'}
+      </td>
+      <td class="actions">
+        <a href="/admin/edit.html?id=${m.id}" class="edit">Edit</a>
+        <a class="delete" onclick="hapus('${m.id}')">Hapus</a>
+      </td>
+    </tr>
+  `).join('')
 }
 
 async function loadMenus() {
@@ -193,48 +236,8 @@ async function loadMenus() {
     if (!res.ok) throw new Error('Gagal ambil data')
 
     const data = await res.json()
-
-    if (!Array.isArray(data) || !data.length) {
-      tbody.innerHTML = `<tr><td colspan="7">Belum ada menu.</td></tr>`
-      return
-    }
-
-    tbody.innerHTML = data.map(m => `
-      <tr>
-        <td>
-          ${
-            m.image_url
-              ? `<img src="${m.image_url}" class="thumb"
-                     onerror="this.onerror=null;this.src='/images/no-image.png'">`
-              : `<div class="thumb-wrap">No Img</div>`
-          }
-        </td>
-        <td>${m.name || '-'}</td>
-        <td>${rupiah(m.price)}</td>
-        <td>${m.category || '-'}</td>
-
-        <td>
-          ${
-            m.is_active
-              ? `<span class="badge active">Aktif</span>`
-              : `<span class="badge inactive">Nonaktif</span>`
-          }
-        </td>
-
-        <td>
-          ${
-            m.is_best_seller
-              ? `<span class="badge best">⭐ Best</span>`
-              : '-'
-          }
-        </td>
-
-        <td class="actions">
-          <a href="/admin/edit.html?id=${m.id}" class="edit">Edit</a>
-          <a class="delete" onclick="hapus('${m.id}')">Hapus</a>
-        </td>
-      </tr>
-    `).join('')
+    allMenus = data // Simpan ke variabel global
+    renderMenus(allMenus) // Tampilkan semua
 
   } catch (err) {
     console.error(err)
@@ -242,10 +245,22 @@ async function loadMenus() {
   }
 }
 
+// Logika Pencarian
+searchInput.addEventListener('input', (e) => {
+  const keyword = e.target.value.toLowerCase()
+  const filtered = allMenus.filter(item => 
+    item.name.toLowerCase().includes(keyword) || 
+    (item.category && item.category.toLowerCase().includes(keyword))
+  )
+  renderMenus(filtered)
+})
+
 async function hapus(id) {
   if (!confirm('Yakin mau hapus menu ini?')) return
 
   try {
+    statusEl.textContent = '⏳ Sedang menghapus...'
+    
     const res = await fetch(`/api/admin/menus/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
@@ -255,7 +270,7 @@ async function hapus(id) {
     if (!res.ok) throw new Error(data.error || 'Gagal hapus')
 
     statusEl.textContent = '✅ Menu berhasil dihapus'
-    loadMenus()
+    loadMenus() // Reload data
   } catch (err) {
     statusEl.textContent = '❌ ' + err.message
   }
