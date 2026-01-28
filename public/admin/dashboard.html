@@ -3,6 +3,7 @@
 <head>
   <title>Dashboard Admin - Warung Nyam Nyam</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
 
   <style>
     body {
@@ -35,7 +36,6 @@
       gap: 10px;
     }
 
-    /* Style Input Pencarian Baru */
     .search-box {
       padding: 10px;
       border: 1px solid #ddd;
@@ -152,7 +152,7 @@
 
     <div>
       <a href="/admin/add.html" class="btn">➕ Tambah Menu</a>
-      <button class="btn gray" onclick="logout()">Logout</button>
+      <button class="btn gray" id="logoutBtn">Logout</button>
     </div>
   </div>
 
@@ -179,20 +179,24 @@
 </div>
 
 <script>
+// 1. Cek Login di Awal
 const token = localStorage.getItem('token')
-if (!token) location.href = '/admin/login.html'
+if (!token) {
+    window.location.replace('/admin/login.html') // Pakai replace biar gak bisa back
+}
 
 const tbody = document.getElementById('tbody')
 const statusEl = document.getElementById('status')
 const searchInput = document.getElementById('searchInput')
+const logoutBtn = document.getElementById('logoutBtn') // Ambil tombol logout
 
-let allMenus = [] // Variabel untuk menyimpan data agar pencarian cepat
+let allMenus = [] 
 
 function rupiah(n) {
   return 'Rp ' + Number(n || 0).toLocaleString('id-ID')
 }
 
-// Fungsi Render untuk menampilkan data (dipisah agar bisa dipanggil saat search)
+// Render Data
 function renderMenus(data) {
   if (!Array.isArray(data) || !data.length) {
     tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px;">Menu tidak ditemukan.</td></tr>`
@@ -227,25 +231,31 @@ function renderMenus(data) {
   `).join('')
 }
 
+// Load Data dari API
 async function loadMenus() {
   try {
     const res = await fetch('/api/admin/menus', {
       headers: { Authorization: `Bearer ${token}` }
     })
 
+    if (res.status === 401) {
+        handleLogout() // Token expired, auto logout
+        return
+    }
+
     if (!res.ok) throw new Error('Gagal ambil data')
 
     const data = await res.json()
-    allMenus = data // Simpan ke variabel global
-    renderMenus(allMenus) // Tampilkan semua
+    allMenus = data 
+    renderMenus(allMenus) 
 
   } catch (err) {
     console.error(err)
-    tbody.innerHTML = `<tr><td colspan="7">Gagal memuat data.</td></tr>`
+    tbody.innerHTML = `<tr><td colspan="7">Gagal memuat data. Cek koneksi server.</td></tr>`
   }
 }
 
-// Logika Pencarian
+// Search Logic
 searchInput.addEventListener('input', (e) => {
   const keyword = e.target.value.toLowerCase()
   const filtered = allMenus.filter(item => 
@@ -255,6 +265,7 @@ searchInput.addEventListener('input', (e) => {
   renderMenus(filtered)
 })
 
+// Hapus Menu
 async function hapus(id) {
   if (!confirm('Yakin mau hapus menu ini?')) return
 
@@ -270,17 +281,26 @@ async function hapus(id) {
     if (!res.ok) throw new Error(data.error || 'Gagal hapus')
 
     statusEl.textContent = '✅ Menu berhasil dihapus'
-    loadMenus() // Reload data
+    loadMenus() 
   } catch (err) {
     statusEl.textContent = '❌ ' + err.message
   }
 }
 
-function logout() {
-  localStorage.removeItem('token')
-  location.href = '/admin/login.html'
+// FIX: Fungsi Logout yang Lebih Aman & Rapi
+function handleLogout() {
+    localStorage.clear() // Hapus semua session
+    window.location.replace('/admin/login.html') // Redirect dan hapus history back
 }
 
+// Event Listener untuk tombol Logout
+logoutBtn.addEventListener('click', () => {
+    if (confirm('Apakah Anda yakin ingin keluar?')) {
+        handleLogout()
+    }
+})
+
+// Jalankan Load
 loadMenus()
 </script>
 

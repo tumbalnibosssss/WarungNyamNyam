@@ -2,118 +2,205 @@
 <html>
 <head>
   <title>Login Admin - Warung Nyam Nyam</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
 
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #f8f8f8;
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: #f6f6f6;
       display: flex;
-      justify-content: center;
       align-items: center;
-      height: 100vh;
+      justify-content: center;
+      min-height: 100vh;
     }
 
-    .login-box {
+    .box {
       background: white;
-      padding: 2rem;
-      border-radius: 12px;
+      padding: 30px;
+      border-radius: 16px;
       width: 100%;
-      max-width: 350px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      max-width: 360px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
     }
 
-    input, button {
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 24px;
+    }
+
+    label {
+      font-size: 14px;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    input {
       width: 100%;
-      padding: 0.7rem;
-      margin-top: 0.7rem;
-      border-radius: 8px;
+      padding: 10px;
+      border-radius: 10px;
       border: 1px solid #ddd;
-      font-size: 1rem;
+      margin-bottom: 16px;
+      font-size: 14px;
+      box-sizing: border-box; /* Penting agar padding tidak melebarkan input */
     }
 
     button {
+      width: 100%;
+      padding: 12px;
       background: #e63946;
       color: white;
       border: none;
+      border-radius: 12px;
+      font-weight: bold;
       cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #d62839;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
 
     .error {
-      color: red;
-      font-size: 0.85rem;
-      margin-top: 0.7rem;
-    }
-
-    .success {
-      color: green;
-      font-size: 0.85rem;
-      margin-top: 0.7rem;
+      color: #a11a1a;
+      font-size: 13px;
+      margin-top: 15px;
+      text-align: center;
+      min-height: 18px; /* Menjaga layout tidak lompat */
     }
   </style>
 </head>
 <body>
 
-<div class="login-box">
-  <h2>Login Admin</h2>
+<div class="box">
+  <h1>🔐 Login Admin</h1>
 
-  <input id="email" type="email" placeholder="Email admin" />
-  <input id="password" type="password" placeholder="Password" />
-  <button id="loginBtn">Login</button>
+  <div id="loadingConfig" style="text-align: center; font-size: 13px; color: #666; margin-bottom: 10px;">
+    Menghubungkan ke server...
+  </div>
 
-  <div id="message" class="error"></div>
+  <div id="loginForm" style="display: none;">
+    <label>Email</label>
+    <input id="email" type="email" placeholder="admin@nyamnyam.com">
+
+    <label>Password</label>
+    <input id="password" type="password" placeholder="********">
+
+    <button id="loginBtn">Masuk</button>
+  </div>
+
+  <div class="error" id="error"></div>
 </div>
 
-<!-- Supabase CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-  let client
+// Elemen DOM
+const loadingConfig = document.getElementById('loadingConfig')
+const loginForm = document.getElementById('loginForm')
+const btn = document.getElementById('loginBtn')
+const errorEl = document.getElementById('error')
 
-  async function init() {
+let supabaseClient = null
+
+// 2. Inisialisasi Supabase
+async function initSupabase() {
+  try {
+    // Ambil konfigurasi dari server kita (supaya key tidak terekspos hardcode)
     const res = await fetch('/api/config')
+    if (!res.ok) throw new Error('Gagal memuat konfigurasi server')
+    
     const config = await res.json()
-
-    if (!config.supabaseUrl || !config.supabaseAnonKey) {
-      document.getElementById('message').innerText =
-        'Config Supabase tidak ditemukan. Cek server.js'
-      return
+    
+    // Buat client Supabase
+    supabaseClient = supabase.createClient(config.supabaseUrl, config.supabaseAnonKey)
+    
+    // Tampilkan form login
+    loadingConfig.style.display = 'none'
+    loginForm.style.display = 'block'
+    
+    // Cek jika user sudah login (opsional, auto redirect)
+    const { data: { session } } = await supabaseClient.auth.getSession()
+    if (session) {
+      localStorage.setItem('token', session.access_token)
+      location.href = '/admin/dashboard.html'
     }
 
-    client = supabase.createClient(
-      config.supabaseUrl,
-      config.supabaseAnonKey
-    )
+  } catch (err) {
+    loadingConfig.textContent = 'Gagal terhubung: ' + err.message
+    loadingConfig.style.color = 'red'
+  }
+}
+
+// Jalankan saat halaman dimuat
+initSupabase()
+
+// 3. Handle Login
+btn.onclick = async () => {
+  if (!supabaseClient) return
+
+  errorEl.textContent = ''
+  btn.disabled = true
+  btn.textContent = 'Memproses...'
+
+  const email = document.getElementById('email').value.trim()
+  const password = document.getElementById('password').value.trim()
+
+  if (!email || !password) {
+    errorEl.textContent = 'Email dan password wajib diisi'
+    btn.disabled = false
+    btn.textContent = 'Masuk'
+    return
   }
 
-  init()
-
-  const btn = document.getElementById('loginBtn')
-  const msg = document.getElementById('message')
-
-  btn.addEventListener('click', async () => {
-    if (!client) return alert('Supabase belum siap')
-
-    const email = document.getElementById('email').value
-    const password = document.getElementById('password').value
-
-    msg.innerText = 'Loading...'
-
-    const { data, error } = await client.auth.signInWithPassword({
-      email,
-      password
+  try {
+    // Login langsung ke Supabase Auth
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email: email,
+      password: password
     })
 
     if (error) {
-      msg.innerText = error.message
-      return
+      throw error
     }
 
+    // Login Sukses!
+    // Simpan access token ke localStorage untuk dipakai API request nanti
     localStorage.setItem('token', data.session.access_token)
-    window.location.href = '/admin/dashboard.html'
-  })
-</script>
+    
+    // Redirect ke dashboard
+    location.href = '/admin/dashboard.html'
 
+  } catch (err) {
+    console.error(err)
+    // Tampilkan pesan error yang user-friendly
+    if (err.message.includes('Invalid login credentials')) {
+      errorEl.textContent = 'Email atau password salah'
+    } else {
+      errorEl.textContent = 'Gagal login: ' + err.message
+    }
+    
+    btn.disabled = false
+    btn.textContent = 'Masuk'
+  }
+}
+
+// Fitur tekan Enter untuk login
+document.getElementById('password').addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') {
+      btn.click()
+    }
+})
+</script>
 
 </body>
 </html>
