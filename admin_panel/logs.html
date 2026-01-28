@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Riwayat Aktivitas Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/admin/layout.css">
+
+  <style>
+    .log-item {
+      padding: 14px;
+      border-bottom: 1px solid #eee;
+      font-size: 14px;
+    }
+
+    .log-item:last-child {
+      border-bottom: none;
+    }
+
+    .time {
+      font-size: 12px;
+      color: #777;
+      margin-bottom: 4px;
+    }
+
+    .empty {
+      text-align: center;
+      color: #777;
+      padding: 30px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">🍽 Warung Nyam Nyam</div>
+    <nav class="nav">
+      <a href="/admin/dashboard.html">Dashboard</a>
+      <a href="/admin/add.html">Tambah Menu</a>
+      <a href="/admin/logs.html">Riwayat Aktivitas</a>
+      <a href="#" id="logoutBtn">Logout</a>
+    </nav>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">Riwayat Aktivitas Admin</div>
+
+    <div class="content">
+      <div class="card" id="logs">
+        <div class="empty">Memuat aktivitas...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/admin/layout.js"></script>
+
+<script>
+const token = localStorage.getItem('token')
+if (!token) location.href = '/admin/login.html'
+
+document.getElementById('logoutBtn').onclick = () => {
+  localStorage.removeItem('token')
+  location.href = '/admin/login.html'
+}
+
+const container = document.getElementById('logs')
+
+async function api(url) {
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+
+  if (res.status === 401) {
+    localStorage.removeItem('token')
+    location.href = '/admin/login.html'
+    return []
+  }
+
+  return res.json()
+}
+
+function formatRupiah(n) {
+  return 'Rp' + Number(n).toLocaleString('id-ID')
+}
+
+function buildMessage(log) {
+  const admin = log.edited_by || 'Admin'
+  const name = log.after_data?.name || log.before_data?.name || 'menu'
+
+  if (log.action === 'CREATE') {
+    return `👤 ${admin} menambahkan menu baru: <b>${name}</b>`
+  }
+
+  if (log.action === 'UPDATE') {
+    const changes = []
+    const before = log.before_data || {}
+    const after = log.after_data || {}
+
+    for (const key in after) {
+      if (before[key] !== after[key]) {
+        if (key === 'price') {
+          changes.push(`mengubah harga dari ${formatRupiah(before[key])} → ${formatRupiah(after[key])}`)
+        } else if (key === 'is_active') {
+          changes.push(after[key] ? 'mengaktifkan menu' : 'menonaktifkan menu')
+        } else if (key === 'is_best_seller') {
+          changes.push(after[key] ? 'menjadikan Best Seller ⭐' : 'menghapus status Best Seller')
+        }
+      }
+    }
+
+    if (changes.length === 0) {
+      return `👤 ${admin} mengedit menu <b>${name}</b>`
+    }
+
+    return `👤 ${admin} ${changes.join(', ')} pada <b>${name}</b>`
+  }
+
+  return 'Aktivitas tidak diketahui'
+}
+
+async function load() {
+  const logs = await api('/api/admin/logs')
+
+  if (!logs.length) {
+    container.innerHTML = `<div class="empty">Belum ada aktivitas</div>`
+    return
+  }
+
+  container.innerHTML = logs.map(log => `
+    <div class="log-item">
+      <div class="time">${new Date(log.created_at).toLocaleString('id-ID')}</div>
+      <div>${buildMessage(log)}</div>
+    </div>
+  `).join('')
+}
+
+load()
+</script>
+
+</body>
+</html>

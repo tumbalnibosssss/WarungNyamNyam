@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Tambah Menu - Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/admin/layout.css">
+
+  <style>
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #111;
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 999px;
+      font-size: 14px;
+      opacity: 0;
+      pointer-events: none;
+      transition: 0.3s;
+      z-index: 100;
+    }
+
+    .toast.show {
+      opacity: 1;
+      bottom: 30px;
+    }
+
+    .loading-text {
+      font-size: 13px;
+      color: #777;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">🍽 Warung Nyam Nyam</div>
+    <nav class="nav">
+        <a href="/admin/dashboard.html">Dashboard</a>
+        <a href="/admin/add.html">Tambah Menu</a>
+        <a href="/admin/logs.html">Audit Log</a>
+        <a href="#" id="logoutBtn">Logout</a>
+    </nav>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">Tambah Menu</div>
+
+    <div class="content">
+      <div class="card">
+
+        <div class="group">
+          <label>Nama Menu</label>
+          <input id="menu_name" placeholder="Contoh: Ayam Geprek Sambal Ijo">
+        </div>
+
+        <div class="row">
+          <div class="group">
+            <label>Harga</label>
+            <input id="price" type="number" placeholder="15000">
+          </div>
+          <div class="group">
+            <label>Kategori</label>
+            <input id="category" placeholder="Makanan / Minuman">
+          </div>
+        </div>
+
+        <div class="group">
+          <label>Upload Gambar</label>
+          <input type="file" id="image_file" accept="image/*">
+          <div id="uploadStatus" class="loading-text"></div>
+          <img id="preview" class="preview">
+        </div>
+
+        <div class="group">
+          <label>
+            <input type="checkbox" id="is_active" checked>
+            Menu langsung aktif
+          </label>
+        </div>
+
+        <div class="group">
+          <label>
+            <input type="checkbox" id="is_best">
+            Tandai sebagai Best Seller ⭐
+          </label>
+        </div>
+
+        <div class="actions">
+          <button class="primary" id="saveBtn">Simpan Menu</button>
+          <button class="secondary" onclick="location.href='/admin/dashboard.html'">
+            Batal & Kembali
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="/admin/layout.js"></script>
+
+<script>
+// 1. Cek Auth
+const token = localStorage.getItem('token')
+if (!token) location.href = '/admin/login.html'
+
+// 2. Logout Logic
+const logoutBtn = document.getElementById('logoutBtn')
+logoutBtn.onclick = () => {
+  localStorage.removeItem('token')
+  location.href = '/admin/login.html'
+}
+
+// 3. Elements
+const nameInput = document.getElementById('menu_name')
+const priceInput = document.getElementById('price')
+const categoryInput = document.getElementById('category')
+const fileInput = document.getElementById('image_file')
+const activeInput = document.getElementById('is_active')
+const bestInput = document.getElementById('is_best')
+const preview = document.getElementById('preview')
+const saveBtn = document.getElementById('saveBtn')
+const toast = document.getElementById('toast')
+const uploadStatus = document.getElementById('uploadStatus')
+
+function showToast(msg) {
+  toast.textContent = msg
+  toast.classList.add('show')
+  setTimeout(() => toast.classList.remove('show'), 2500)
+}
+
+// 4. Preview gambar saat user memilih file
+fileInput.onchange = () => {
+  const file = fileInput.files[0]
+  if (file) {
+    preview.src = URL.createObjectURL(file)
+    preview.style.display = 'block'
+  }
+}
+
+// 5. Fungsi Upload ke Server (Supabase Proxy)
+async function uploadImage(file) {
+  // Validasi ukuran client-side (5MB)
+  const maxSize = 5 * 1024 * 1024
+  if (file.size > maxSize) {
+    throw new Error('Ukuran gambar terlalu besar. Maksimal 5MB.')
+  }
+
+  const formData = new FormData()
+  formData.append('image', file)
+
+  uploadStatus.textContent = 'Mengupload ke Supabase...'
+
+  // Kirim ke server kita, server yang akan teruskan ke Supabase
+  const res = await fetch('/api/upload-image', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: formData
+  })
+
+  let data
+  try {
+    data = await res.json()
+  } catch {
+    throw new Error('Gagal memproses respon dari server')
+  }
+
+  if (!res.ok) {
+    throw new Error(data.error || 'Upload gagal')
+  }
+
+  uploadStatus.textContent = 'Upload berhasil'
+  return data.url // URL Gambar dari Supabase
+}
+
+// 6. Helper API Wrapper
+async function api(url, options = {}) {
+  const res = await fetch(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    }
+  })
+
+  if (res.status === 401) {
+    showToast('Sesi habis, login ulang')
+    localStorage.removeItem('token')
+    setTimeout(() => location.href = '/admin/login.html', 1000)
+    throw new Error('Unauthorized')
+  }
+
+  if (!res.ok) {
+    throw new Error(await res.text())
+  }
+
+  return res.json()
+}
+
+// 7. Handle Tombol Simpan
+saveBtn.onclick = async () => {
+  // Validasi Input
+  if (!nameInput.value.trim()) return showToast('Nama menu wajib diisi')
+  if (!categoryInput.value.trim()) return showToast('Kategori wajib diisi')
+  if (priceInput.value <= 0) return showToast('Harga tidak valid')
+
+  saveBtn.disabled = true
+  saveBtn.innerText = 'Memproses...'
+
+  try {
+    let imageUrl = ''
+
+    // Jika ada file dipilih, upload dulu
+    if (fileInput.files.length > 0) {
+      imageUrl = await uploadImage(fileInput.files[0])
+    }
+
+    // Simpan data menu ke database
+    await api('/api/admin/menus', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: nameInput.value.trim(),
+        price: Number(priceInput.value),
+        category: categoryInput.value.trim(),
+        image_url: imageUrl,
+        is_active: activeInput.checked,
+        is_best_seller: bestInput.checked
+      })
+    })
+
+    showToast('Menu berhasil ditambahkan')
+    // Reset form atau redirect
+    setTimeout(() => location.href = '/admin/dashboard.html', 1000)
+
+  } catch (err) {
+    console.error(err)
+    showToast(err.message || 'Gagal menyimpan menu')
+  } finally {
+    saveBtn.disabled = false
+    saveBtn.innerText = 'Simpan Menu'
+  }
+}
+</script>
+
+</body>
+</html>

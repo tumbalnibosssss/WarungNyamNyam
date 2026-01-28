@@ -209,6 +209,7 @@
     <div class="menu" id="bestSellerContainer">
       <p>Loading menu...</p>
     </div>
+
   </section>
 
   <!-- MAP -->
@@ -230,7 +231,7 @@
 
   <!-- FLOATING WHATSAPP -->
   <a 
-    href="https://wa.me/6281261040365" 
+    href="https://wa.me/628123456789" 
     target="_blank" 
     class="wa-float">
     💬 Chat WhatsApp
@@ -246,24 +247,20 @@
     async function loadBestSeller() {
       try {
         const res = await fetch('/api/menus/best-seller')
-        if (!res.ok) throw new Error('API error')
-
         const data = await res.json()
+
         const container = document.getElementById('bestSellerContainer')
 
-        if (!Array.isArray(data) || !data.length) {
+        if (!data.length) {
           container.innerHTML = '<p>Belum ada menu best seller.</p>'
           return
         }
 
         container.innerHTML = data.map(item => `
           <div class="card">
-            <img 
-              src="${item.image_url || '/images/no-image.png'}" 
-              alt="${item.name}"
-              onerror="this.onerror=null;this.src='/images/no-image.png';">
+            <img src="${item.image_url || 'https://via.placeholder.com/400x300'}" alt="${item.name}">
             <h3>${item.name}</h3>
-            <p>Rp ${Number(item.price || 0).toLocaleString('id-ID')}</p>
+            <p>Rp ${item.price.toLocaleString('id-ID')}</p>
           </div>
         `).join('')
       } catch (err) {
@@ -275,6 +272,7 @@
 
     loadBestSeller()
   </script>
+
 
 </body>
 </html>
